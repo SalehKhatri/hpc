@@ -140,3 +140,50 @@ export const getReports = async (data) => {
         return error.response;
     }
 }
+
+export const getAllDoctors = async () => {
+    const token = localStorage.getItem('token');
+    
+    try {
+        const config = {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        };
+        return await axios.get(`https://hospital-pulse-connect.onrender.com/api/v1/doctor`, config);
+    } catch (error) {
+        console.log("error fetching data!");
+        return error.response;
+    }
+}
+
+export const createAppointment = async(data) =>{
+    const token = localStorage.getItem('token'); 
+    
+    try {
+        const config = {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        };
+        return await axios.post(`https://hospital-pulse-connect.onrender.com/api/v1/appointment`,data,config)
+    } catch (error) {
+        console.log("error creating child")
+        return error.response;
+    }
+}
+export const getAppointments = async () => {
+    const token = localStorage.getItem('token');
+    
+    try {
+        const config = {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        };
+        return await axios.get(`https://hospital-pulse-connect.onrender.com/api/v1/appointment`, config);
+    } catch (error) {
+        console.log("error fetching data!");
+        return error.response;
+    }
+}

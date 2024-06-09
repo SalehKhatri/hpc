@@ -1,13 +1,13 @@
-import Profile from "../Dashboard/Profile"
-import AppointmentDetails from "./AppointmentDetails"
+import Profile from "../Dashboard/Profile";
+import AppointmentDetails from "./AppointmentDetails";
 
 const Appointment = () => {
-    return (
-        <div className="w-full">
-            <Profile/>
-            <AppointmentDetails/>
-        </div>
-    )
-}
+  return (
+    <div className="w-full">
+      <Profile />
+      <AppointmentDetails />
+    </div>
+  );
+};
 
-export default Appointment
+export default Appointment;
