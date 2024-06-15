@@ -1,5 +1,5 @@
 import axios from "axios";
-const URL= 'https://hospital-pulse-connect.onrender.com/api/v1/user';
+const URL= 'http://192.168.1.15:4000/api/v1/user';
 export const authenticateSignup = async(data,token) => {
     try {
         const config = {headers: {Authorization: `Bearer ${token}`}};
@@ -26,7 +26,7 @@ export const addChild = async(data) =>{
                 Authorization: `Bearer ${token}`
             }
         };
-        return await axios.post(`https://hospital-pulse-connect.onrender.com/api/v1/child/addChild`,data,config)
+        return await axios.post(`http://localhost:4000/api/v1/child/addChild`,data,config)
     } catch (error) {
         console.log("error creating child")
         return error.response;
@@ -41,7 +41,7 @@ export const getChild = async () => {
                 Authorization: `Bearer ${token}`
             }
         };
-        return await axios.get(`https://hospital-pulse-connect.onrender.com/api/v1/child/rootChild`, config);
+        return await axios.get(`http://localhost:4000/api/v1/child/rootChild`, config);
     } catch (error) {
         console.log("error fetching child data");
         return error.response;
@@ -49,7 +49,7 @@ export const getChild = async () => {
 }
 
 
-const URI = 'https://hospital-pulse-connect.onrender.com/api/v1/image';
+const URI = 'http://localhost:4000/api/v1/image';
 
 export const uploadFile = async (file) => {
     const token = localStorage.getItem('token');
@@ -80,7 +80,7 @@ export const uploadFile = async (file) => {
 
 export const getPatients = async(data) => {
     try {
-        const response= await axios.get('https://hospital-pulse-connect.onrender.com/api/v1/user',data);
+        const response= await axios.get('http://192.168.1.15:4000/api/v1/user',data);
         return response.data;
     } catch (error) {
         console.log("Error while calling getPatients api",error);
@@ -89,7 +89,7 @@ export const getPatients = async(data) => {
 
 export const getChildByParentId = async (parentId) => {
     try {
-        const response = await axios.get(`https://hospital-pulse-connect.onrender.com/api/v1/child/parent/${parentId}`);
+        const response = await axios.get(`http://localhost:4000/api/v1/child/parent/${parentId}`);
         return response.data;
     } catch (error) {
         console.error('Error while fetching child data:', error);
@@ -99,7 +99,7 @@ export const getChildByParentId = async (parentId) => {
 
 export const getDocuments = async (data) => {
     try {
-        const response = await axios.get(`https://hospital-pulse-connect.onrender.com/api/v1/document`,data);
+        const response = await axios.get(`http://localhost:4000/api/v1/document`,data);
         return response.data;
     } catch (error) {
         console.error('Error while fetching document data:', error);
@@ -117,7 +117,7 @@ export const addDocument = async (file) => {
         };
         const formData = new FormData();
         formData.append('document', file);
-        return await axios.post(`https://hospital-pulse-connect.onrender.com/api/v1/document`,formData, config);
+        return await axios.post(`http://localhost:4000/api/v1/document`,formData, config);
     } catch (error) {
         console.log("error creating document")
         return error.response;
@@ -132,7 +132,7 @@ export const getReports = async (data) => {
                 Authorization: `Bearer ${token}`
             }
         };
-        return await axios.get(`https://hospital-pulse-connect.onrender.com/api/v1/report`,data,config);
+        return await axios.get(`http://localhost:4000/api/v1/report`,data,config);
         
     }
     catch (error) {
@@ -150,7 +150,7 @@ export const getAllDoctors = async () => {
                 Authorization: `Bearer ${token}`
             }
         };
-        return await axios.get(`https://hospital-pulse-connect.onrender.com/api/v1/doctor`, config);
+        return await axios.get(`http://localhost:4000/api/v1/doctor`, config);
     } catch (error) {
         console.log("error fetching data!");
         return error.response;
@@ -166,7 +166,7 @@ export const createAppointment = async(data) =>{
                 Authorization: `Bearer ${token}`
             }
         };
-        return await axios.post(`https://hospital-pulse-connect.onrender.com/api/v1/appointment`,data,config)
+        return await axios.post(`http://localhost:4000/api/v1/appointment`,data,config)
     } catch (error) {
         console.log("error creating child")
         return error.response;
@@ -181,9 +181,42 @@ export const getAppointments = async () => {
                 Authorization: `Bearer ${token}`
             }
         };
-        return await axios.get(`https://hospital-pulse-connect.onrender.com/api/v1/appointment`, config);
+        return await axios.get(`http://localhost:4000/api/v1/appointment`, config);
     } catch (error) {
         console.log("error fetching data!");
         return error.response;
     }
 }
+
+  export const getMessages = async (senderId, receiverId) => {
+
+    if (!receiverId || !senderId) {
+      return console.log("No id");
+    }
+
+    try {
+      const response = await axios.post(
+        "http://192.168.1.15:4000/api/v1/chat/getmessages",
+        { senderId: senderId, receiverId: receiverId }
+      );
+      console.log("Messages:", response.data);
+      return response.data
+    } catch (error) {
+      if (error.response) {
+        if (error.response.status === 404) {
+          console.log("No messages found");
+          return "NOMESSAGES"
+        } else {
+          console.error(
+            "Error fetching messages:",
+            error.response.status,
+            error.response.data
+          );
+        }
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+      } else {
+        console.error("Error setting up the request:", error.message);
+      }
+    }
+  };

@@ -9,6 +9,7 @@ import { getChild } from '../../services/api';
 import { DataContext } from '../../context/DataProvider';
 import UserCarousel from './UserCarousel';
 import Footer from './Footer';
+import AddAppointmentModal from '../Admin/Home/Appointments/AddAppointmentModal';
 
 const UserProfile = () => {
     const [fetchedChildren, setFetchedChildren] = useState([]);
@@ -18,6 +19,7 @@ const UserProfile = () => {
     const [showFileUpload, setShowFileUpload] = useState(false);
     const { account } = useContext(DataContext);
     const [showChildInfo, setShowChildInfo] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleAddChild = () => {
         setShowChildInfo(true);
@@ -31,6 +33,7 @@ const UserProfile = () => {
     };
 
     useEffect(() => {
+        
         const fetchChildren = async () => {
             try {
                 const response = await getChild();
@@ -64,8 +67,13 @@ const UserProfile = () => {
         setShowFileUpload(false); 
     };
 
+    const closeModal = () => {
+        setIsModalOpen(false);
+      };
+
     return (
         <div className='bg'>
+            {isModalOpen && <AddAppointmentModal closeModal={closeModal} />}
             <UserNavbar /> <br />
             <h2 className="pt-16 text-center text-3xl font-medium">👋Welcome {account}</h2>
             <UserCarousel />
@@ -83,7 +91,8 @@ const UserProfile = () => {
                                 <p><strong>Last Name:</strong> {child.lastName}</p>
                                 <p><strong>Date of Birth:</strong> {formatDate(child.dateOfBirth)}</p>
                                 <p><strong>Gender:</strong> {child.gender}</p>
-                                <button onClick={() => handleChildUpload(child.id, child.firstName)} id='button2' className='mt-4 bg-[#013365] flex justify-center mx-auto'>Take Diagnose</button>
+                                {/* <button onClick={() => handleChildUpload(child.id, child.firstName)} id='button2' className='mt-4 bg-[#013365] flex justify-center mx-auto'>Take Diagnose</button> */}
+                                <button onClick={() => setIsModalOpen(true)} className="text-white p-3 mt-4 rounded-lg hover:scale-[1.03] hover:opacity-90 transition-all duration-150 ease-in-out">Take appointment</button>
                             </div>
                         ))}
                     </div>

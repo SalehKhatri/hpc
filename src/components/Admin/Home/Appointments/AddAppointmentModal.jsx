@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getAllDoctors, createAppointment } from "../../../../services/api";
 import { useForm } from "react-hook-form";
-
+// import { ClipLoader } from "react-spinners";
 function AddAppointmentModal({ closeModal }) {
   const {
     register,
@@ -15,13 +15,12 @@ function AddAppointmentModal({ closeModal }) {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(null);
   const [timeOptions, setTimeOptions] = useState([]);
-
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
   useEffect(() => {
     generateTimeOptions();
   }, [selectedDate]);
 
   const handleDateChange = (date) => {
-    console.log("Date changed");
     setSelectedDate(date);
     setSelectedTime(null); // Reset time when date changes
   };
@@ -55,6 +54,7 @@ function AddAppointmentModal({ closeModal }) {
     const response = await getAllDoctors();
     if (response.status == 200) {
       setAllDoctors(response.data);
+      setLoadingDoctors(false);
     } else {
       console.log("An error occurred");
     }
@@ -64,11 +64,11 @@ function AddAppointmentModal({ closeModal }) {
   }, []);
 
   const handleFormSubmit = async (data) => {
-    console.log("Clicked");
     //converting date to iso format
     const res = await createAppointment(data);
     if (res.status == 200) {
       console.log("Appointment created successfully");
+      closeModal()
     } else {
       console.log("An error occurred", res);
     }
@@ -94,7 +94,7 @@ function AddAppointmentModal({ closeModal }) {
           </label>
           <select
             defaultValue={""}
-            className="bg-[white] border-[none] h-[36px] px-[8px] py-[2px] text-[16px] rounded-[16px]  text-[gray] w-[34.8%] cursor-pointer outline-none"
+            className={errors.doctorId?"bg-[white] border-none h-[36px] px-[8px] py-[2px] text-[16px] rounded-[16px]  text-[gray] w-[34.8%] cursor-pointer outline-red-500":"bg-[white] border-[none] h-[36px] px-[8px] py-[2px] text-[16px] rounded-[16px]  text-[gray] w-[34.8%] cursor-pointer outline-none"}
             style={{ width: "90%" }}
             {...register("doctorId", {
               required: {
@@ -102,17 +102,19 @@ function AddAppointmentModal({ closeModal }) {
                 message: "Doctor is required",
               },
             })}
+            disabled={loadingDoctors}
           >
             <option value="" disabled>
-              Select a doctor
+              {!loadingDoctors ? "Select a doctor" : "Loading doctors"}
             </option>
-            {allDoctors.map((doctor, index) => {
-              return (
-                <option value={doctor._id} key={index}>
-                  {doctor.name} ({doctor.specialization})
-                </option>
-              );
-            })}
+            {!loadingDoctors &&
+              allDoctors.map((doctor, index) => {
+                return (
+                  <option value={doctor._id} key={index}>
+                    {doctor.name} ({doctor.specialization})
+                  </option>
+                );
+              })}
           </select>
           {errors.doctorId?.message && (
             <div>

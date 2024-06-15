@@ -49,7 +49,7 @@ const AppointmentDetails = () => {
         end.setHours(start.getHours() + 1);
 
         return {
-          title: `Appointment with Dr. ${appointment.doctorId}`, // Customize as needed
+          title: ` Dr. ${appointment.doctorName}`, // Customize as needed
           start,
           end,
         };

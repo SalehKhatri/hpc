@@ -40,6 +40,7 @@ const SignUp = () => {
         if (response && response.status === 200) {
             const token = response.data.token;
             localStorage.setItem('token', token);
+            localStorage.setItem('id',response.data.userId)
             setAccount(data.userName);
             localStorage.setItem('account', JSON.stringify(data.userName)); 
             navigate('/user');
