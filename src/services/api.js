@@ -1,5 +1,5 @@
 import axios from "axios";
-const URL= 'http://192.168.1.15:4000/api/v1/user';
+const URL= 'http://localhost:4000/api/v1/user';
 export const authenticateSignup = async(data,token) => {
     try {
         const config = {headers: {Authorization: `Bearer ${token}`}};
@@ -80,7 +80,7 @@ export const uploadFile = async (file) => {
 
 export const getPatients = async(data) => {
     try {
-        const response= await axios.get('http://192.168.1.15:4000/api/v1/user',data);
+        const response= await axios.get('http://localhost:4000/api/v1/user',data);
         return response.data;
     } catch (error) {
         console.log("Error while calling getPatients api",error);
@@ -196,10 +196,10 @@ export const getAppointments = async () => {
 
     try {
       const response = await axios.post(
-        "http://192.168.1.15:4000/api/v1/chat/getmessages",
+        "http://localhost:4000/api/v1/chat/getmessages",
         { senderId: senderId, receiverId: receiverId }
       );
-      console.log("Messages:", response.data);
+
       return response.data
     } catch (error) {
       if (error.response) {

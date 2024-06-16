@@ -1,8 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { io } from "socket.io-client";
 import { getMessages, getPatients } from "../../../../services/api";
-import { BiPhoneCall } from "react-icons/bi"; // Import BiPhoneCall icon
-
+import { FaVideo } from "react-icons/fa";
+import peer from "../../../../services/peer";
+import CallModal from "./CallModal";
 const token = localStorage.getItem("token");
 
 // Initialize Socket.io client with token for authentication
@@ -13,13 +14,12 @@ const socket = io("http://localhost:4000", {
 });
 
 const MessageDetails = () => {
+  //States for messages
   const [contacts, setContacts] = useState([]);
   const [receiverData, setReceiverData] = useState({ id: "", name: "" });
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const messagesRef = useRef(messages);
 
-  // Function to fetch contacts and set the default receiver
   const getContacts = async () => {
     const response = await getPatients();
     const contactsData = response.filter(
@@ -47,7 +47,6 @@ const MessageDetails = () => {
     }
   };
 
-  // Effect to establish socket connection and fetch contacts initially
   useEffect(() => {
     socket.on("connect", () => {
       console.log("Connected to server");
@@ -59,13 +58,6 @@ const MessageDetails = () => {
       setMessages((prevMessages) => [...prevMessages, message]);
     });
 
-      // Listener for incoming call
-    socket.off("incomming:call");
-    socket.on("incomming:call", ({ from, offer }) => {
-      console.log("Incoming call from:", from);
-      // Handle incoming call offer here (show UI for accepting/rejecting the call)
-    });
-
     getContacts();
 
     // Clean up the socket connection on component unmount
@@ -73,7 +65,7 @@ const MessageDetails = () => {
       socket.off("newMessage");
       socket.disconnect();
     };
-  }, []);
+  }, [socket]);
 
   // Effect to fetch messages whenever the receiver changes
   useEffect(() => {
@@ -99,13 +91,6 @@ const MessageDetails = () => {
     setNewMessage("");
   };
 
-  const initiateCall = (contactId) => {
-    // Emit a call request to the selected contact
-    socket.emit("user:call", { to: contactId });
-    console.log("Calling");
-    // Handle UI to show calling state or options
-  };
-
   // Function to select a contact from the list
   const selectContact = (contact) => {
     setReceiverData({ id: contact._id, name: contact.userName });
@@ -116,11 +101,217 @@ const MessageDetails = () => {
     return name.charAt(0).toUpperCase();
   };
 
+  // Everything of call functionality starts here
+
+  const [myStream, setMyStream] = useState();
+  const [remoteStream, setRemoteStream] = useState();
+  const [remoteSocketId, setRemoteSocketId] = useState();
+  const [showModal, setShowModal] = useState(false);
+  const [isIncommingCall, setIsIncommingCall] = useState(false);
+  const [isCallAccepted, setIsCallAccepted] = useState(false);
+  const [callerName, setCallerName] = useState("");
+  const [callingTo, setCallingTo] = useState("");
+
+  // Logic for ringing!
+  const [ringingAudio] = useState(new Audio("/public/ringing.mp3"));
+  const [waitingAudio] = useState(new Audio("/public/waiting.mp3"));
+
+  const playRingingSound = useCallback(() => {
+    ringingAudio.loop = true; // Loop the ringing sound
+    ringingAudio.play();
+  }, [ringingAudio]);
+
+  // Function to stop ringing audio
+  const stopRingingSound = useCallback(() => {
+    ringingAudio.pause();
+    ringingAudio.currentTime = 0; // Reset audio to beginning
+    console.log("Sound stopped");
+  }, [ringingAudio]);
+
+  // Function to play waiting tone audio
+  const playWaitingSound = useCallback(() => {
+    waitingAudio.loop = true; // Loop the waiting tone
+    waitingAudio.play();
+  }, [waitingAudio]);
+
+  // Function to stop waiting tone audio
+  const stopWaitingSound = useCallback(() => {
+    waitingAudio.pause();
+    waitingAudio.currentTime = 0; // Reset audio to beginning
+  }, [waitingAudio]);
+
+  // Clean up audio resources on component unmount
+  useEffect(() => {
+    return () => {
+      ringingAudio.pause();
+      ringingAudio.currentTime = 0;
+      waitingAudio.pause();
+      waitingAudio.currentTime = 0;
+    };
+  }, [ringingAudio, waitingAudio]);
+
+  // Logic for ringing ends here
+  const handleIncommingCall = useCallback(
+    async ({ from, name, offer }) => {
+      setCallerName(name);
+      setShowModal(true);
+      setIsIncommingCall(true);
+      setRemoteSocketId(from);
+      playRingingSound();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true,
+      });
+      setMyStream(stream);
+      const ans = await peer.getAnswer(offer);
+      socket.emit("call:accepted", { to: from, ans });
+    },
+    [socket]
+  );
+
+  const handleCallUser = useCallback(
+    async (contact, e) => {
+      e.stopPropagation();
+      setCallingTo(contact.userName);
+      setIsIncommingCall(false);
+      setShowModal(true);
+      playWaitingSound();
+      setRemoteSocketId(contact._id);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true,
+      });
+      const offer = await peer.getOffer();
+      socket.emit("user:call", {
+        to: contact._id,
+        name: localStorage.getItem("account"),
+        offer: offer,
+      });
+      setMyStream(stream);
+    },
+    [receiverData.id, socket]
+  );
+
+  const sendStreams = useCallback(() => {
+    for (const track of myStream.getTracks()) {
+      peer.peer.addTrack(track, myStream);
+    }
+  }, [myStream]);
+
+  const handleCallAccepted = useCallback(
+    async ({ from, ans }) => {
+      peer.setLocalDescription(ans);
+      sendStreams();
+    },
+    [sendStreams]
+  );
+
+  const handleNegoNeeded = useCallback(async () => {
+    const offer = await peer.getOffer();
+    socket.emit("peer:nego:needed", { to: remoteSocketId, offer: offer });
+  }, [remoteSocketId, socket]);
+
+  const handleNegoNeedIncomming = useCallback(
+    async ({ from, offer }) => {
+      const ans = await peer.getAnswer(offer);
+      socket.emit("peer:nego:done", { to: from, ans });
+    },
+    [socket]
+  );
+
+  const handleNegoFinal = useCallback(async ({ from, ans }) => {
+    await peer.setLocalDescription(ans);
+  });
+
+  const leaveCall = useCallback(() => {
+    socket.emit("leave:call", { to: remoteSocketId });
+    if (myStream) {
+      myStream.getTracks().forEach((track) => track.stop());
+    }
+    if (remoteStream) {
+      remoteStream.getTracks().forEach((track) => track.stop());
+    }
+    setShowModal(false);
+    setMyStream(null);
+    setRemoteStream(null);
+    setRemoteSocketId(null);
+    setIsCallAccepted(false);
+    setIsIncommingCall(false);
+    stopRingingSound();
+    stopWaitingSound();
+  }, [myStream, remoteStream, remoteSocketId, socket]);
+
+  useEffect(() => {
+    socket.on("incomming:call", handleIncommingCall);
+    socket.on("call:accepted", handleCallAccepted);
+    socket.on("peer:nego:needed", handleNegoNeedIncomming);
+    socket.on("peer:nego:final", handleNegoFinal);
+    socket.on("call:ended", leaveCall);
+
+    return () => {
+      socket.off("incomming:call", handleIncommingCall);
+      socket.off("call:accepted", handleCallAccepted);
+      socket.off("peer:nego:needed", handleNegoNeedIncomming);
+      socket.off("peer:nego:final", handleNegoFinal);
+      socket.off("call:ended", leaveCall);
+    };
+  }, [
+    socket,
+    handleIncommingCall,
+    leaveCall,
+    handleCallAccepted,
+    handleNegoNeedIncomming,
+    handleNegoFinal,
+  ]);
+
+  useEffect(() => {
+    peer.peer.addEventListener("negotiationneeded", handleNegoNeeded);
+
+    return () => {
+      peer.peer.removeEventListener("negotiationneeded", handleNegoNeeded);
+    };
+  }, [handleNegoNeeded]);
+
+  useEffect(() => {
+    peer.peer.addEventListener("track", async (ev) => {
+      console.log("GOT TRACKS");
+      if (!isIncommingCall && !isCallAccepted) {
+        setIsCallAccepted(true);
+        stopWaitingSound();
+      } else {
+        setIsCallAccepted(false);
+        // playRingingSound()
+      }
+
+      const remoteStream = ev.streams[0];
+      setRemoteStream(remoteStream);
+    });
+  }, [remoteStream, isIncommingCall, isCallAccepted]);
+
+  const acceptCall = () => {
+    stopRingingSound();
+    sendStreams();
+    setIsCallAccepted(true);
+  };
+
   return (
     <div className="w-full flex justify-between items-start p-4 gap-8">
+      {showModal && (
+        <CallModal
+          callingTo={callingTo}
+          callerName={callerName}
+          leaveCall={leaveCall}
+          isIncommingCall={isIncommingCall}
+          myStream={myStream}
+          remoteStream={remoteStream}
+          sendStreams={sendStreams}
+          isCallAccepted={isCallAccepted}
+          acceptCall={acceptCall}
+        />
+      )}
       {/* Contacts Section */}
       <div className="w-1/3 h-[90vh] flex flex-col bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="sticky top-0 bg-[#92A8C6] px-4 py-2 z-10 shadow-md rounded-t-lg">
+        <div className="sticky top-0 bg-[#92A8C6] px-4 py-2 shadow-md rounded-t-lg">
           <h1 className="text-lg font-semibold text-white">Messages</h1>
         </div>
         <div className="flex-1 bg-[#D9D9D9] overflow-y-auto p-4">
@@ -132,8 +323,7 @@ const MessageDetails = () => {
                 receiverData.id === contact._id
                   ? "bg-[#92a8c6] text-white "
                   : "hover:bg-[#92a8c6] hover:text-white"
-              }`
-            }
+              }`}
               onClick={() => selectContact(contact)}
               role="button"
               tabIndex={0}
@@ -149,16 +339,17 @@ const MessageDetails = () => {
                 >
                   {getInitials(contact.userName)}
                 </div>
-                <span className="font-semibold text-lg">{contact.userName}</span>
+                <span className="font-semibold text-lg">
+                  {contact.userName}
+                </span>
               </div>
-              <BiPhoneCall
+              <FaVideo
                 className={`text-3xl cursor-pointer ${
                   receiverData.id === contact._id
                     ? "text-white"
                     : "text-[#92a8c6] hover:text-white"
-                }`
-              }
-              onClick={(e) => initiateCall(contact._id, e)} // Call initiate function
+                }`}
+                onClick={(e) => handleCallUser(contact, e)} // Call initiate function
               />{" "}
               {/* Call icon */}
             </div>
