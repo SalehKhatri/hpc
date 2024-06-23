@@ -1,7 +1,8 @@
 import { useContext, useEffect } from "react";
 import { DataContext } from "../../context/DataProvider";
 import HPCLogo from '../../assets/HPClogo.png';
-import { useNavigate } from "react-router-dom";
+import { IoMdChatboxes } from "react-icons/io";
+import { Link, useNavigate } from "react-router-dom";
 
 const UserNavbar = () => {
     const { account, setAccount } = useContext(DataContext);
@@ -32,10 +33,11 @@ const UserNavbar = () => {
                     </div>
                     <div className="flex justify-center items-center space-x-4">
                         {account ? (
-                            <>
+                            <div className="flex justify-center items-center gap-4">
+                           <Link to={"/messages"} className=""> <IoMdChatboxes color="#013365" size={"28px"} /></Link>
                                 <span className="text-blue-500">{account}</span>
                                 <button onClick={handleLogout} className="text-white" id="button">Logout</button>
-                            </>
+                            </div>
                         ) : (
                             <>
                                 <a href="/signin" className="text-blue-500">Profile</a>

@@ -166,3 +166,42 @@ border: 1px solid rgba( 255, 255, 255, 0.18 );
     top: calc(50% - 1.25em);
     left: calc(50% - 1.25em);
 }
+
+/* Css for message modal! */
+/* Add these styles to your global CSS file or the component's CSS module */
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+  
+  .animate-fadeOut {
+    animation: fadeOut 0.3s ease-out forwards;
+  }
+  
